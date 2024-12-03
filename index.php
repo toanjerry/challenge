@@ -12,13 +12,21 @@
 
 		const NEW_LINE = ["\r\n", "\n", "\r"];
 
-		public static function getNumbers ($str) {
+		public static function getValues ($str, $pattern = '') {
 			if (!$str) {
 				return [];
 			}
-			preg_match_all('/[-|+]?\d+/', $str, $matches);
 
-			return array_map('floatval', $matches[0]);
+			preg_match_all($pattern, $str, $matches);
+
+			return $matches[0];
+		}
+
+		public static function getNumbers ($str) {
+
+			$values = self::getValues($str, '/[-|+]?\d+/');
+
+			return array_map('floatval', $values);
 		}
 
 		public static function getUnits ($str, $val_pattern = '[-|+]?[.\d]+', $unit_pattern = '[A-z]*') {
@@ -128,7 +136,7 @@
 		public $day = 1;
 		public $level = 1;
 
-		public $domain = 'https://adventofcode.com/2023';
+		public $domain = 'https://adventofcode.com/2024';
 
 		public $input = [];
 
@@ -212,6 +220,7 @@
 
 			echo "\nResult: ";
 			echo json_encode($this->result);
+			echo "\n";
 
 			return $this;
 		}
@@ -258,82 +267,78 @@
 		// day => resolver
 		'1_1' => [
 			'parser' => [
-				'sep' => "\n",
-				'key' => null,
-				'parser' => [
-					'sep' => '',
-					'parser' => function ($val) {
-						if (!is_numeric($val)) {
-							return null;
-						}
-
-						return intval($val);
-					},
-				]
+				'parser' => "InputHelper::getNumbers",
 			],
 			'resolver' => function ($input) {
-				$rs = 0;
-				foreach ($input as $line) {
-					$line = array_values($line);
-					$num_digit = count($line);
-					if ($num_digit > 1) {
-						$rs += $line[0]*10 + end($line);
-						continue;
+				$sum = 0;
+				for ($i = 0; $i < count($input) - 1; $i++) {
+					for ($j = $i; $j < count($input); $j++) {
+						if ($input[$i][0] > $input[$j][0]) {
+							$temp = $input[$i][0];
+							$input[$i][0] = $input[$j][0];
+							$input[$j][0] = $temp;
+						}
+						if ($input[$i][1] > $input[$j][1]) {
+							$temp = $input[$i][1];
+							$input[$i][1] = $input[$j][1];
+							$input[$j][1] = $temp;
+						}
 					}
-					if ($num_digit === 1) {
-						$rs += $line[0]*10 + $line[0];
-						continue;
-					}
+					$sum += abs($input[$i][0] - $input[$i][1]);
 				}
 
-				return $rs;
+				$sum += abs($input[count($input) - 1][0] - $input[count($input) - 1][1]);
+
+				return $sum;
 			},
 		],
 		'1_2' => [
 			'parser' => [
-				'parser' => [
-					'sep' => '',
-					'parser' => null,
-				]
+				'parser' => "InputHelper::getNumbers",
 			],
 			'resolver' => function ($input) {
 				$rs = 0;
+				$hash = [];
+				for ($i = 0; $i < count($input); $i++) {
+					if (isset($hash[$input[$i][1]])) {
+						$hash[$input[$i][1]]++;
+					} else {
+						$hash[$input[$i][1]] = 1;
+					}
+				}
+
+				for ($i = 0; $i < count($input); $i++) {
+					$rs += $input[$i][0] * ($hash[$input[$i][0]] ?? 0);
+				}
 
 				return $rs;
 			},
 		],
 		'2_1' => [
 			'parser' => [
-				'parser' => [
-					'sep' => ':',
-					'key' => function ($value) {
-						return InputHelper::getNumbers($value[0])[0] ?? 0;
-					},
-					'value' => function ($value) {
-						return $value[1];
-					},
-					'parser' => [
-						'sep' => ';',
-						'parser' => function ($str) {
-							return InputHelper::getUnits($str);
-						}
-					],
-				]
+				'parser' => "InputHelper::getNumbers",
 			],
 			'resolver' => function ($input) {
 				$rs = 0;
 
-				foreach ($input as $key => $line) {
-					$valid = true;
-					foreach ($line as $r) {
-						if (($r['red'] ?? 0) > 12 || ($r['green'] ?? 0) > 13 || ($r['blue'] ?? 0) > 14) {
-							$valid = false;
+				foreach ($input as $line) {
+					$is_safe = true;
+					for ($i = 1; $i < count($line) - 1; $i++) {
+						$sub_1 = $line[$i] - $line[$i-1];
+						$sub_2 = $line[$i+1] - $line[$i];
+
+						if (($sub_1 * $sub_2) < 0) {
+							$is_safe = false;
+							break;
+						}
+						if (abs($sub_1) > 3 || abs($sub_1) < 1 || abs($sub_2) > 3 || abs($sub_2) < 1) {
+							$is_safe = false;
 							break;
 						}
 					}
 
-					if ($valid) {
-						$rs += $key;
+					if ($is_safe) {
+						$rs++;
 					}
 				}
 
@@ -342,25 +347,91 @@
 		],
 		'2_2' => [
 			'parser' => [
-				'parser' => [
-					'sep' => '',
-					'parser' => null,
-				]
+				'parser' => "InputHelper::getNumbers",
 			],
 			'resolver' => function ($input) {
 				$rs = 0;
+
+				$check_safe = function ($line) {
+					for ($i = 1; $i < count($line) - 1; $i++) {
+						$sub_1 = $line[$i] - $line[$i-1];
+						$sub_2 = $line[$i+1] - $line[$i];
+
+						if (($sub_1 * $sub_2) < 0) {
+							return false;
+						}
+						if (abs($sub_1) > 3 || abs($sub_1) < 1 || abs($sub_2) > 3 || abs($sub_2) < 1) {
+							return false;
+						}
+					}
+
+					return true;
+				};
+
+				foreach ($input as $line) {
+					if ($check_safe($line)) {
+						$rs++;
+						continue;
+					}
+
+					$is_safe = false;
+					for ($j = 0; $j < count($line); $j++) {
+						$arr = $line;
+						unset($arr[$j]);
+						
+						if ($check_safe(array_values($arr))) {
+							$is_safe = true;
+							break;
+						}
+					}
+
+					if ($is_safe) {
+						$rs++;
+					}
+				}
 
 				return $rs;
 			},
 		],
 		'3_1' => [
 			'parser' => [
+				'sep' => "\n\n",
+				'value' => function ($val) {
+					$pattern = '/mul\(\d{1,3},\d{1,3}\)/';
+					return InputHelper::getValues($val[0], $pattern);
+				},
+				'parser' => "InputHelper::getNumbers",
+			],
+			'resolver' => function ($input) {
+				$rs = 0;
+
+				foreach ($input as $mul) {
+					$rs += $mul[0] * $mul[1];
+				}
+
+				return $rs;
+			},
+		],
+		'3_2' => [
+			'parser' => [
+				'sep' => "do\(\)",
 				'parser' => [
-					'sep' => '',
+					'sep' => "don't\(\)",
+					'value' => function ($val) {
+						$pattern = '/mul\(\d{1,3},\d{1,3}\)/';
+						return InputHelper::getValues($val[0], $pattern);
+					},
+					'parser' => "InputHelper::getNumbers",
 				]
 			],
 			'resolver' => function ($input) {
 				$rs = 0;
+
+				foreach ($input as $do) {
+					foreach ($do as $mul) {
+						$rs += $mul[0] * $mul[1];
+					}
+				}
 
 				return $rs;
 			},
@@ -380,232 +451,6 @@
 						'parser' => function ($str) {
 							return InputHelper::getNumbers($str);
 						}
-					]
-				]
-			],
-			'resolver' => function ($input) {
-				$rs = 0;
-
-				return $rs;
-			},
-		],
-		'5_1' => [
-			'parser' => [
-				'sep' => "\n\n",
-				'parser_0' => [
-					'sep' => ":",
-					'key' => function ($value) {
-						return trim($value[0]);
-					},
-					'value' => function ($value) {
-						return $value[1];
-					},
-					'parser' => 'InputHelper::getNumbers',
-				],
-				'parser' => [
-					'sep' => "\n",
-					'key' => function ($value) {
-						return str_replace(" map:", "", trim($value[0]));
-					},
-					'value' => function ($value) {
-						array_shift($value);
-						return $value;
-					},
-					'parser' => 'InputHelper::getNumbers',
-				]
-			],
-			'resolver' => function ($input) {
-				$rs = 0;
-
-				return $rs;
-			},
-		],
-		'6_1' => [
-			'parser' => [
-				'parser' => [
-					'sep' => ':',
-					'key' => function ($value) {
-						return $value[0];
-					},
-					'value' => function ($value) {
-						return $value[1];
-					},
-					'parser' => "InputHelper::getNumbers",
-				]
-			],
-			'resolver' => function ($input) {
-				$rs = 0;
-
-				return $rs;
-			},
-		],
-		'7_1' => [
-			'parser' => [
-				'parser' => [
-					'sep' => "\s+",
-					'key' => function ($value) {
-						return trim($value[0]);
-					},
-					'value' => function ($value) {
-						return intval($value[1]);
-					},
-				]
-			],
-			'resolver' => function ($input) {
-				$rs = 0;
-
-				return $rs;
-			},
-		],
-		'8_1' => [
-			'parser' => [
-				'sep' => "\n\n",
-				'parser_0' => [
-					'sep' => '',
-				],
-				'parser_1' => [
-					'sep' => "\n",
-					'parser' => [
-						'sep' => "\s+=\s+",
-						'key' => function ($value) {
-							return trim($value[0]);
-						},
-						'value' => function ($value) {
-							return $value[1];
-						},
-						'parser' => [
-							'sep' => ",\s+",
-							'wrapped' => ["\("],
-						]
-					]
-				]
-			],
-			'resolver' => function ($input) {
-				$rs = 0;
-
-				return $rs;
-			},
-		],
-		'18_1' => [
-			'parser' => [
-				'parser' => [
-					'sep' => "\s+",
-					'parser_2' => [
-						'wrapped' => ["\("],
-					]
-				]
-			],
-			'resolver' => function ($input) {
-				$rs = 0;
-
-				return $rs;
-			},
-		],
-		'19_1' => [
-			'parser' => [
-				'sep' => "\n\n",
-				'parser_0' => [
-					'sep' => InputHelper::NEW_LINE,
-					'parser' => [
-						'sep' => "{",
-						'key' => function ($value) {
-							return trim($value[0]);
-						},
-						'value' => function ($value) {
-							return $value[1];
-						},
-						'parser' => [
-							'sep' => ',',
-							'wrapped' => ["", "\}"],
-						]
-					]
-				],
-				'parser_1' => [
-					'sep' => "\n",
-					'parser' => [
-						'sep' => ',',
-						'wrapped' => ["{"],
-						'parser' => [
-							'sep' => '=',
-							'key' => function ($value) {
-								return $value[0];
-							},
-							'value' => function ($value) {
-								return intval($value[1]);
-							},
-						]
-					]
-				]
-			],
-			'resolver' => function ($input) {
-				$rs = 0;
-
-				return $rs;
-			},
-		],
-		'20_1' => [
-			'parser' => [
-				'parser' => [
-					'sep' => "\s+->\s+",
-					'key' => function ($value) {
-						return trim($value[0]);
-					},
-					'value' => function ($value) {
-						return $value[1];
-					},
-					'parser' => [
-						'sep' => ',\s+',
-						'parser' => 'trim',
-					]
-				]
-			],
-			'resolver' => function ($input) {
-				$rs = 0;
-
-				return $rs;
-			},
-		],
-		'22_1' => [
-			'parser' => [
-				'parser' => [
-					'sep' => "~",
-					'parser' => [
-						'sep' => ',',
-						'parser' => 'intval',
-					]
-				]
-			],
-			'resolver' => function ($input) {
-				$rs = 0;
-
-				return $rs;
-			},
-		],
-		'24_1' => [
-			'parser' => [
-				'parser' => [
-					'sep' => "\s+@\s+",
-					'parser' => "InputHelper::getNumbers"
-				]
-			],
-			'resolver' => function ($input) {
-				$rs = 0;
-
-				return $rs;
-			},
-		],
-		'25_1' => [
-			'parser' => [
-				'parser' => [
-					'sep' => ":\s+",
-					'key' => function ($val) {
-						return trim($val[0]);
-					},
-					'value' => function ($val) {
-						return $val[1];
-					},
-					'parser' => [
-						'sep' => '\s+',
 					]
 				]
 			],
