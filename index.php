@@ -439,23 +439,145 @@
 		'4_1' => [
 			'parser' => [
 				'parser' => [
-					'sep' => ':',
-					'key' => function ($value) {
-						return InputHelper::getNumbers($value[0])[0] ?? 0;
-					},
-					'value' => function ($value) {
-						return $value[1];
-					},
-					'parser' => [
-						'sep' => '\|',
-						'parser' => function ($str) {
-							return InputHelper::getNumbers($str);
-						}
-					]
+					'sep' => '',
 				]
 			],
 			'resolver' => function ($input) {
 				$rs = 0;
+
+				$check_match = function ($x, $y) use ($input) {
+					$match_x1 = 1;
+					foreach (['M', 'A', 'S'] as $idx => $c) {
+						if (($input[$y][$x+$idx+1] ?? null) !== $c) {
+							$match_x1 = 0;
+							break;
+						}
+					}
+
+					$match_x2 = 1;
+					foreach (['M', 'A', 'S'] as $idx => $c) {
+						if (($input[$y][$x-$idx-1] ?? null) !== $c) {
+							$match_x2 = 0;
+							break;
+						}
+					}
+
+					$match_y1 = 1;
+					foreach (['M', 'A', 'S'] as $idx => $c) {
+						if (($input[$y+$idx+1][$x] ?? null) !== $c) {
+							$match_y1 = 0;
+							break;
+						}
+					}
+
+					$match_y2 = 1;
+					foreach (['M', 'A', 'S'] as $idx => $c) {
+						if (($input[$y-$idx-1][$x] ?? null) !== $c) {
+							$match_y2 = 0;
+							break;
+						}
+					}
+
+					$match_c1 = 1;
+					foreach (['M', 'A', 'S'] as $idx => $c) {
+						if (($input[$y-$idx-1][$x-$idx-1] ?? null) !== $c) {
+							$match_c1 = 0;
+							break;
+						}
+					}
+
+					$match_c2 = 1;
+					foreach (['M', 'A', 'S'] as $idx => $c) {
+						if (($input[$y+$idx+1][$x+$idx+1] ?? null) !== $c) {
+							$match_c2 = 0;
+							break;
+						}
+					}
+
+					$match_c3 = 1;
+					foreach (['M', 'A', 'S'] as $idx => $c) {
+						if (($input[$y-$idx-1][$x+$idx+1] ?? null) !== $c) {
+							$match_c3 = 0;
+							break;
+						}
+					}
+
+					$match_c4 = 1;
+					foreach (['M', 'A', 'S'] as $idx => $c) {
+						if (($input[$y+$idx+1][$x-$idx-1] ?? null) !== $c) {
+							$match_c4 = 0;
+							break;
+						}
+					}
+
+					return $match_c1 + $match_c2 + $match_c3 + $match_c4 + $match_y1 + $match_x1 + $match_y2 + $match_x2;
+				};
+
+				foreach ($input as $y => $line) {
+					foreach ($line as $x => $c) {
+						if ($c !== 'X') {
+							continue;
+						}
+
+						$rs += $check_match($x, $y);
+					}
+				}
+
+				return $rs;
+			},
+		],
+		'4_2' => [
+			'parser' => [
+				'parser' => [
+					'sep' => '',
+				]
+			],
+			'resolver' => function ($input) {
+				$rs = 0;
+
+				$check_x_match = function ($x, $y) use ($input) {
+					if (($input[$y+1][$x+1] ?? null) === 'S'
+					&& ($input[$y+1][$x-1] ?? null) === 'S'
+					&& ($input[$y-1][$x+1] ?? null) === 'M'
+					&& ($input[$y-1][$x-1] ?? null) === 'M') {
+						return true;
+					}
+
+					if (($input[$y-1][$x+1] ?? null) === 'S'
+					&& ($input[$y-1][$x-1] ?? null) === 'S'
+					&& ($input[$y+1][$x+1] ?? null) === 'M'
+					&& ($input[$y+1][$x-1] ?? null) === 'M') {
+						return true;
+					}
+
+					if (($input[$y-1][$x+1] ?? null) === 'S'
+					&& ($input[$y+1][$x+1] ?? null) === 'S'
+					&& ($input[$y-1][$x-1] ?? null) === 'M'
+					&& ($input[$y+1][$x-1] ?? null) === 'M') {
+						return true;
+					}
+
+					if (($input[$y-1][$x-1] ?? null) === 'S'
+					&& ($input[$y+1][$x-1] ?? null) === 'S'
+					&& ($input[$y-1][$x+1] ?? null) === 'M'
+					&& ($input[$y+1][$x+1] ?? null) === 'M') {
+						return true;
+					}
+
+					return false;
+				};
+
+				foreach ($input as $y => $line) {
+					foreach ($line as $x => $c) {
+						if ($c !== 'A') {
+							continue;
+						}
+
+						if ($check_x_match($x, $y)) {
+							$rs++;
+						};
+					}
+				}
 
 				return $rs;
 			},
