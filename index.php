@@ -1,5 +1,11 @@
 <?php
 
+	function array_swap (&$arr, $key_1, $key_2) {
+		$temp = $arr[$key_1];
+		$arr[$key_1] = $arr[$key_2];
+		$arr[$key_2] = $temp;
+	} 
+
 	class InputHelper {
 		const WRAP_MAP = [
 			'\(' => '\)',
@@ -666,9 +672,7 @@
 						$idx_1 = array_search($rule[1], $pages);
 						if ($idx_0 > $idx_1) {
 							$in_all_rule = false;
-							$temp = $pages[$idx_0];
-							$pages[$idx_0] = $pages[$idx_1];
-							$pages[$idx_1] = $temp;
+							array_swap($pages, $idx_0, $idx_1);
 						}
 					}
 
