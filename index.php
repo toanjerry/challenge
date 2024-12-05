@@ -151,6 +151,9 @@
 		}
 
 		public function getInputFromServer ($parser = null) {
+			if ($this->input) {
+				return $this;
+			}
 			// get input from server
 			$path = "day/{$this->day}/input";
 			$url = "{$this->domain}/$path";
@@ -642,89 +645,59 @@
 			'resolver' => function ($input) {
 				$rs = 0;
 
-				// $input[0] = [
-				// 	[47, 53],
-				// 	[97, 13],
-				// 	[97, 61],
-				// 	[97, 47],
-				// 	[75, 29],
-				// 	[61, 13],
-				// 	[75, 53],
-				// 	[29, 13],
-				// 	[97, 29],
-				// 	[53, 29],
-				// 	[61, 53],
-				// 	[97, 53],
-				// 	[61, 29],
-				// 	[47, 13],
-				// 	[75, 47],
-				// 	[97, 75],
-				// 	[47, 61],
-				// 	[75, 61],
-				// 	[47, 29],
-				// 	[75, 13],
-				// 	[53, 13],
-				// ];
+				$check_rule = function ($arr, $rule, &$in_rule) {
+					$idx_0 = array_search($rule[0], $arr);
+					$idx_1 = array_search($rule[1], $arr);
+					if ($idx_0 !== false && $idx_1 !== false) {
+						$in_rule = $idx_0 <= $idx_1;
 
-				// $input[1] = [
-				// 	[75,97,47,61,53],
-				// 	[61,13,29],
-				// 	[97,13,75,29,47],
-				// ];
-
-				$check_in_rule = function ($arr, $rule) {
-					$key_1 = array_search($rule[0], $arr);
-					if ($key_1 === false) {
 						return true;
-					}
-					$key_2 = array_search($rule[1], $arr);
-					if ($key_2 === false) {
-						return true;
-					}
+					};
 
-					return $key_1 < $key_2;
+					$in_rule = true;
+
+					return false;
 				};
 
-				$valid_in_rule = function ($arr, $rule) {
-					$key_1 = array_search($rule[0], $arr);
-					if ($key_1 === false) {
-						return $arr;
-					}
-					$key_2 = array_search($rule[1], $arr);
-					if ($key_2 === false) {
-						return $arr;
-					}
-
-					if ($key_1 <= $key_2) {
-						return $arr;
-					}
-
-					$r = [];
-					foreach ($arr as $key => $val) {
-						if ($key === $key_2) {
-							continue;
-						}
-						$r[] = $val;
-						if ($key === $key_1) {
-							$r[] = $arr[$key_2];
+				$order = function (&$pages, $rules) use (&$order) {
+					$in_all_rule = true;
+					foreach ($rules as $rule) {
+						$idx_0 = array_search($rule[0], $pages);
+						$idx_1 = array_search($rule[1], $pages);
+						if ($idx_0 > $idx_1) {
+							$in_all_rule = false;
+							$temp = $pages[$idx_0];
+							$pages[$idx_0] = $pages[$idx_1];
+							$pages[$idx_1] = $temp;
 						}
 					}
 
-					return $r;
+					if ($in_all_rule) {
+						return;
+					}
+
+					$order($pages, $rules);
 				};
 
 				foreach ($input[1] as $pages) {
-					$in_rule = true;
+					$rules = [];
+					$in_all_rule = true;
 					foreach ($input[0] as $rule) {
-						if (!$check_in_rule($pages, $rule)) {
-							$pages = $valid_in_rule($pages, $rule);
-							$in_rule = false;
+						$in_rule = true;
+						if ($check_rule($pages, $rule, $in_rule)) {
+							$rules[] = $rule;
+
+							if (!$in_rule) {
+								$in_all_rule = false;
+							}
 						}
 					}
 
-					if ($in_rule) {
+					if ($in_all_rule) {
 						continue;
 					}
+
+					$order($pages, $rules);
 
 					$rs += $pages[(count($pages)-1)/2];
 				}
@@ -737,6 +710,9 @@
 	$challenge = new Adventofcode($s_key, $day, $level);
 	$parser = $resolvers["{$day}_{$level}"]['parser'] ?? null;
 	$resolver = $resolvers["{$day}_{$level}"]['resolver'] ?? null;
+
+	// $challenge->setInput("", $parser);
+
 	$challenge->getInputFromServer($parser)->resolve($resolver);
 
 	// $challenge->submit();
