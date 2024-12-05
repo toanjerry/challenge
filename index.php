@@ -4,7 +4,12 @@
 		$temp = $arr[$key_1];
 		$arr[$key_1] = $arr[$key_2];
 		$arr[$key_2] = $temp;
-	} 
+	}
+
+	const END_LINE = ["\r\n", "\n", "\r"];
+	const NUM_REGEX = '[-+]?\d+';
+	const STR_REGEX = '[A-z]*';
+	const CHAR_REGEX = '[0-9A-z]*';
 
 	class InputHelper {
 		const WRAP_MAP = [
@@ -15,8 +20,6 @@
 			'"' => '"',
 			"'" => "'",
 		];
-
-		const NEW_LINE = ["\r\n", "\n", "\r"];
 
 		public static function getValues ($str, $pattern = '') {
 			if (!$str) {
@@ -30,23 +33,36 @@
 
 		public static function getNumbers ($str) {
 
-			$values = self::getValues($str, '/[-+]?\d+/');
+			$values = self::getValues($str, NUM_REGEX);
 
 			return array_map('floatval', $values);
 		}
 
-		public static function getUnits ($str, $val_pattern = '[-|+]?[.\d]+', $unit_pattern = '[A-z]*') {
-			preg_match_all("/({$val_pattern})\s*({$unit_pattern})/", $str, $matches);
+		public static function getMaps ($str, $key_pattern = STR_REGEX, $val_pattern = NUM_REGEX, $revert = false) {
+			preg_match_all("/({$key_pattern})\s*({$val_pattern})/", $str, $matches);
 
 			$rs = [];
-			foreach($matches[2] ?? [] as $idx => $key) {
-				if (!$key) {
-					$key = $idx;
-				}
-				$rs[$key] = $matches[1][$idx] ?? 0;
-			};
+			if ($revert) {
+				foreach($matches[2] ?? [] as $idx => $key) {
+					if (!$key) {
+						$key = $idx;
+					}
+					$rs[$key] = $matches[1][$idx] ?? 0;
+				};
+			} else {
+				foreach($matches[1] ?? [] as $idx => $key) {
+					if (!$key) {
+						$key = $idx;
+					}
+					$rs[$key] = $matches[2][$idx] ?? 0;
+				};
+			}
 
 			return $rs;
+		}
+
+		public static function getUnits ($str, $val_pattern = NUM_REGEX, $unit_pattern = STR_REGEX) {
+			return self::getMaps($str, $val_pattern, $unit_pattern, true);
 		}
 
 		public static function getValueWrapped ($str, $w_open = '\(', $w_close = null) {
@@ -139,19 +155,21 @@
 
 		private $s_key = '';
 
+		public $year = 2024;
 		public $day = 1;
 		public $level = 1;
 
-		public $domain = 'https://adventofcode.com/2024';
+		public $domain = 'https://adventofcode.com';
 
 		public $input = [];
 
 		public $result = null;
 
-		public function __construct ($s_key, $day, $level) {
+		public function __construct ($s_key, $day, $level, $year = 2024) {
 			$this->s_key = $s_key;
 			$this->day = $day;
 			$this->level = $level;
+			$this->year = $year;
 
 			echo "Day: $this->day - $this->level\n";
 		}
@@ -161,7 +179,7 @@
 				return $this;
 			}
 			// get input from server
-			$path = "day/{$this->day}/input";
+			$path = "{$this->year}/day/{$this->day}/input";
 			$url = "{$this->domain}/$path";
 
 			$curl_session = curl_init($url);
@@ -213,7 +231,7 @@
 			}
 
 			if (empty($parser['sep'])) {
-				$parser['sep'] = InputHelper::NEW_LINE;
+				$parser['sep'] = END_LINE;
 			}
 
 			return InputHelper::parseString($str, $parser);
@@ -239,7 +257,7 @@
 				echo "\nInvalid day";
 				return;
 			}
-			$path = "day/{$this->day}/submit";
+			$path = "{$this->year}/day/{$this->day}/submit";
 			$url = "{$this->domain}/$path";
 
 			$curl_session = curl_init($url);
@@ -595,11 +613,11 @@
 			'parser' => [
 				'sep' => "\n\n",
 				'parser_0' => [
-					'sep' => "\n",
+					'sep' => END_LINE,
 					'parser' => "InputHelper::getNumbers",
 				],
 				'parser_1' => [
-					'sep' => "\n",
+					'sep' => END_LINE,
 					'parser' => "InputHelper::getNumbers",
 				]
 			],
@@ -640,11 +658,11 @@
 			'parser' => [
 				'sep' => "\n\n",
 				'parser_0' => [
-					'sep' => "\n",
+					'sep' => END_LINE,
 					'parser' => "InputHelper::getNumbers",
 				],
 				'parser_1' => [
-					'sep' => "\n",
+					'sep' => END_LINE,
 					'parser' => "InputHelper::getNumbers",
 				]
 			],
@@ -711,9 +729,32 @@
 		],
 	];
 
-	$challenge = new Adventofcode($s_key, $day, $level);
+	$year = 2024;
+	$challenge = new Adventofcode($s_key, $day, $level, $year);
 	$parser = $resolvers["{$day}_{$level}"]['parser'] ?? null;
 	$resolver = $resolvers["{$day}_{$level}"]['resolver'] ?? null;
+
+
+	// 2022: 5, 11, 16
+	// $parser = [
+	// 	'sep' => "\n\n",
+	// 	'parser_0' => [
+	// 		'sep' => END_LINE,
+	// 		'parser' => [
+	// 			'sep' => "\s{1}",
+	// 			'parser' => function ($str) {
+	// 				return InputHelper::getValues($str, '/[\dA-Z]/');
+	// 			},
+	// 		]
+	// 	],
+	// 	'parser_1' => [
+	// 		'sep' => END_LINE,
+	// 		'parser' => "InputHelper::getMaps",
+	// 	]
+	// ];
+	// $resolver = function ($input) {
+
+	// };
 
 	// $challenge->setInput("", $parser);
 
