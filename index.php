@@ -24,7 +24,7 @@
 
 		public static function getNumbers ($str) {
 
-			$values = self::getValues($str, '/[-|+]?\d+/');
+			$values = self::getValues($str, '/[-+]?\d+/');
 
 			return array_map('floatval', $values);
 		}
@@ -181,10 +181,10 @@
 			// echo some data support check by eye
 			echo('--------------------------');
 			echo("\nnum row: " . count($this->input));
-			echo("\nstart: ");
-			echo json_encode(reset($this->input));
-			echo("\nend: ");
-			echo json_encode(end($this->input));
+			// echo("\nstart: ");
+			// echo json_encode(reset($this->input));
+			// echo("\nend: ");
+			// echo json_encode(end($this->input));
 			echo("\n--------------------------");
 
 			return $this;
@@ -577,6 +577,156 @@
 							$rs++;
 						};
 					}
+				}
+
+				return $rs;
+			},
+		],
+		'5_1' => [
+			'parser' => [
+				'sep' => "\n\n",
+				'parser_0' => [
+					'sep' => "\n",
+					'parser' => "InputHelper::getNumbers",
+				],
+				'parser_1' => [
+					'sep' => "\n",
+					'parser' => "InputHelper::getNumbers",
+				]
+			],
+			'resolver' => function ($input) {
+				$rs = 0;
+
+				$check_in_rule = function ($arr, $rule) {
+					$key_1 = array_search($rule[0], $arr);
+					if ($key_1 === false) {
+						return true;
+					}
+					$key_2 = array_search($rule[1], $arr);
+					if ($key_2 === false) {
+						return true;
+					}
+
+					return $key_1 <= $key_2;
+				};
+
+				foreach ($input[1] as $pages) {
+					$in_rule = true;
+					foreach ($input[0] as $rule) {
+						if (!$check_in_rule($pages, $rule)) {
+							$in_rule = false;
+							break;
+						}
+					}
+
+					if ($in_rule) {
+						$rs += $pages[(count($pages)-1)/2];
+					}
+				}
+
+				return $rs;
+			},
+		],
+		'5_2' => [
+			'parser' => [
+				'sep' => "\n\n",
+				'parser_0' => [
+					'sep' => "\n",
+					'parser' => "InputHelper::getNumbers",
+				],
+				'parser_1' => [
+					'sep' => "\n",
+					'parser' => "InputHelper::getNumbers",
+				]
+			],
+			'resolver' => function ($input) {
+				$rs = 0;
+
+				// $input[0] = [
+				// 	[47, 53],
+				// 	[97, 13],
+				// 	[97, 61],
+				// 	[97, 47],
+				// 	[75, 29],
+				// 	[61, 13],
+				// 	[75, 53],
+				// 	[29, 13],
+				// 	[97, 29],
+				// 	[53, 29],
+				// 	[61, 53],
+				// 	[97, 53],
+				// 	[61, 29],
+				// 	[47, 13],
+				// 	[75, 47],
+				// 	[97, 75],
+				// 	[47, 61],
+				// 	[75, 61],
+				// 	[47, 29],
+				// 	[75, 13],
+				// 	[53, 13],
+				// ];
+
+				// $input[1] = [
+				// 	[75,97,47,61,53],
+				// 	[61,13,29],
+				// 	[97,13,75,29,47],
+				// ];
+
+				$check_in_rule = function ($arr, $rule) {
+					$key_1 = array_search($rule[0], $arr);
+					if ($key_1 === false) {
+						return true;
+					}
+					$key_2 = array_search($rule[1], $arr);
+					if ($key_2 === false) {
+						return true;
+					}
+
+					return $key_1 < $key_2;
+				};
+
+				$valid_in_rule = function ($arr, $rule) {
+					$key_1 = array_search($rule[0], $arr);
+					if ($key_1 === false) {
+						return $arr;
+					}
+					$key_2 = array_search($rule[1], $arr);
+					if ($key_2 === false) {
+						return $arr;
+					}
+
+					if ($key_1 <= $key_2) {
+						return $arr;
+					}
+
+					$r = [];
+					foreach ($arr as $key => $val) {
+						if ($key === $key_2) {
+							continue;
+						}
+						$r[] = $val;
+						if ($key === $key_1) {
+							$r[] = $arr[$key_2];
+						}
+					}
+
+					return $r;
+				};
+
+				foreach ($input[1] as $pages) {
+					$in_rule = true;
+					foreach ($input[0] as $rule) {
+						if (!$check_in_rule($pages, $rule)) {
+							$pages = $valid_in_rule($pages, $rule);
+							$in_rule = false;
+						}
+					}
+
+					if ($in_rule) {
+						continue;
+					}
+
+					$rs += $pages[(count($pages)-1)/2];
 				}
 
 				return $rs;
