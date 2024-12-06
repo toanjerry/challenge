@@ -727,6 +727,167 @@
 				return $rs;
 			},
 		],
+		'6_1' => [
+			'parser' => [
+				'parser' => [
+					'sep' => '',
+				]
+			],
+			'resolver' => function ($input) {
+
+				$step = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+
+				$turn = function (&$x, &$y, $step, &$count_po, &$out) use (&$input) {
+					do {
+						$x += $step[0];
+						$y += $step[1];
+						if (!isset($input[$y][$x])) {
+							$out = true;
+							break;
+						}
+						if ($input[$y][$x] === '.') {
+							$input[$y][$x] = '_';
+							$count_po++;
+						} else if ($input[$y][$x] === '_') {
+							continue;
+						} else {
+							$x -= $step[0];
+							$y -= $step[1];
+							break;
+						}
+					} while (true);
+
+					return $count_po;
+				};
+
+				$p_x = null;
+				$p_y = null;
+				foreach ($input as $y => $line) {
+					foreach ($line as $x => $c) {
+						if ($c === '^') {
+							$p_x = $x;
+							break;
+						}
+					}
+
+					if ($p_x) {
+						$p_y = $y;
+						break;
+					}
+				}
+
+				$rs = 1;
+				$input[$y][$x] = '_';
+
+				$turn_count = 0;
+				$out = false;
+				do {
+					$turn($p_x, $p_y, $step[$turn_count%4], $rs, $out);
+					$turn_count++;
+				} while (!$out);
+
+				return $rs;
+			},
+		],
+		'6_2' => [
+			'parser' => [
+				'parser' => [
+					'sep' => '',
+				]
+			],
+			'resolver' => function ($input) {
+
+				$steps = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+
+				$walk = function (&$x, &$y, $step, $update = true) use (&$input) {
+					$next = $input[$y+$step[1]][$x+$step[0]] ?? null;
+
+					if (!$next) {
+						return 'out';
+					}
+					if ($next === '#' || $next === 'O') {
+						return 'stuck';
+					}
+
+					if ($update) {
+						$input[$y][$x] = $step[0] ? '-' : '|';
+					}
+					$x += $step[0];
+					$y += $step[1];
+
+					return '';
+				};
+
+				$run = function (&$x, &$y, $step) use (&$walk) {
+					do {
+						$status = $walk($x, $y, $step, false);
+						if ($status) {
+							return $status;
+						}
+					} while (true);
+				};
+
+				$check_loop = function ($x, $y, $count_turn) use ($steps, &$run) {
+					$througth = [];
+
+					while (true) {
+						$througth["{$x}-{$y}-".implode(" ", $steps[$count_turn%4])] = 1;
+
+						$count_turn++;
+						$step = $steps[$count_turn%4];
+
+						$status = $run($x, $y, $step);
+						if ($status === 'out') {
+							return false;
+						}
+
+						if (isset($througth["{$x}-{$y}-".implode(" ", $step)])) {
+							return true;
+						}
+					}
+				};
+
+				$finded = false;
+				foreach ($input as $y => $line) {
+					foreach ($line as $x => $c) {
+						if ($c === '^') {
+							$finded = true;
+							break;
+						}
+					}
+
+					if ($finded) {
+						break;
+					}
+				}
+
+				$rs = 0;
+
+				$turn_count = 0;
+				$idx = 0;
+				do {
+					$step = $steps[$turn_count%4];
+					echo "$idx -> ".$input[$y][$x]."\n";
+					$status = $walk($x, $y, $step);
+					if ($status === 'stuck') {
+						$turn_count++;
+					} else if ($status === 'out') {
+						break;
+					} else {
+						$input[$y][$x] = "O";
+						if ($check_loop($x - $step[0], $y - $step[1], $turn_count)) {
+							$rs++;
+						}
+						$input[$y][$x] = ".";
+					}
+
+					$idx++;
+
+				} while (true);
+
+				return $rs;
+			},
+		],
 	];
 
 	$year = 2024;
@@ -756,7 +917,16 @@
 
 	// };
 
-	// $challenge->setInput("", $parser);
+// 	$challenge->setInput("....#.....
+// .........#
+// ..........
+// ..#.......
+// .......#..
+// ..........
+// .#..^.....
+// ........#.
+// #.........
+// ......#...", $parser);
 
 	$challenge->getInputFromServer($parser)->resolve($resolver);
 
