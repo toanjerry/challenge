@@ -7,8 +7,8 @@
 	}
 
 	const END_LINE = ["\r\n", "\n", "\r"];
-	const NUM_REGEX = '[-+]?\d+';
-	const STR_REGEX = '[A-z]*';
+	const NUM_REGEX = '/[-+]?\d+/';
+	const STR_REGEX = '/[A-z]*/';
 	const CHAR_REGEX = '[0-9A-z]*';
 
 	class InputHelper {
@@ -800,29 +800,30 @@
 				$steps = [[0, -1], [1, 0], [0, 1], [-1, 0]];
 
 				$walk = function (&$x, &$y, $step, $update = true) use (&$input) {
-					$next = $input[$y+$step[1]][$x+$step[0]] ?? null;
+					$next = $input[$y+$step[1]][$x+$step[0]] ?? '';
 
 					if (!$next) {
-						return 'out';
+						return '';
 					}
-					if ($next === '#' || $next === 'O') {
-						return 'stuck';
+					if ($next === '#') {
+						return '#';
 					}
 
 					if ($update) {
-						$input[$y][$x] = $step[0] ? '-' : '|';
+						$input[$y][$x] = '-';
 					}
+
 					$x += $step[0];
 					$y += $step[1];
 
-					return '';
+					return $next;
 				};
 
 				$run = function (&$x, &$y, $step) use (&$walk) {
 					do {
-						$status = $walk($x, $y, $step, false);
-						if ($status) {
-							return $status;
+						$next = $walk($x, $y, $step, false);
+						if (!$next || $next === '#') {
+							return $next;
 						}
 					} while (true);
 				};
@@ -830,60 +831,108 @@
 				$check_loop = function ($x, $y, $count_turn) use ($steps, &$run) {
 					$througth = [];
 
-					while (true) {
-						$througth["{$x}-{$y}-".implode(" ", $steps[$count_turn%4])] = 1;
+					$first_key = "{$x}/{$y}/".implode(" ", $steps[$count_turn%4]);
+					$througth[$first_key] = 1;
 
-						$count_turn++;
-						$step = $steps[$count_turn%4];
+					do {
+						$step = $steps[++$count_turn%4];
 
-						$status = $run($x, $y, $step);
-						if ($status === 'out') {
+						$last = $run($x, $y, $step);
+						if (!$last) {
 							return false;
 						}
 
-						if (isset($througth["{$x}-{$y}-".implode(" ", $step)])) {
+						$key = "{$x}/{$y}/".implode(" ", $step);
+						if (isset($througth[$key])) {
+							// if ($key === $first_key) {
+							// 	return true;
+							// }
+							// return false;
 							return true;
 						}
-					}
+
+						$througth[$key] = 1;
+					} while (true);
 				};
 
-				$finded = false;
+				$o_x = null;
+				$o_y = null;
 				foreach ($input as $y => $line) {
 					foreach ($line as $x => $c) {
 						if ($c === '^') {
-							$finded = true;
+							$o_x = $x;
 							break;
 						}
 					}
 
-					if ($finded) {
+					if ($o_x) {
+						$o_y = $y;
 						break;
 					}
 				}
 
-				$rs = 0;
+				$rs = [];
+
+				// $input[$y][$x] = '-';
 
 				$turn_count = 0;
-				$idx = 0;
 				do {
 					$step = $steps[$turn_count%4];
-					echo "$idx -> ".$input[$y][$x]."\n";
-					$status = $walk($x, $y, $step);
-					if ($status === 'stuck') {
-						$turn_count++;
-					} else if ($status === 'out') {
+					$next = $walk($x, $y, $step);
+					if (!$next) {
 						break;
-					} else {
-						$input[$y][$x] = "O";
-						if ($check_loop($x - $step[0], $y - $step[1], $turn_count)) {
-							$rs++;
+					}
+					if ($next === '#') {
+						$turn_count++;
+					} else if ($next === '.') {
+						if (!isset($rs["{$x}/{$y}"]) && ($x !== $o_x || $y !== $o_y)) {
+							$input[$y][$x] = "#";
+							if ($check_loop($x - $step[0], $y - $step[1], $turn_count)) {
+								$rs["{$x}/{$y}"] = 1;
+							}
+							$input[$y][$x] = ".";
 						}
-						$input[$y][$x] = ".";
+					}
+				} while (true);
+
+				return count($rs);
+			},
+		],
+		'7_1' => [
+			'parser' => [
+				'parser' => "InputHelper::getNumbers",
+			],
+			'resolver' => function ($input) {
+				$rs = 0;
+
+				$check = function ($line) {
+					$val = $line[0];
+					$num = count($line) - 1;
+					$tem_val = 0;
+					$valid = true;
+					$get_case = function (&$case, $num, $cases) use (&$get_case) {
+						if (count($case) === $num) {
+							$cases[] = $case;
+ 							return;
+						}
+						$case[] = '+';
+						if (count($case) < $num) {
+							$get_case($case, $num);
+						}
+						$case[] = '*';
+					};
+
+					return $valid;
+				};
+
+				foreach ($input as $line) {
+					$val = $line[0];
+
+					if ($check($line)) {
+						$rs += $line[0];
 					}
 
-					$idx++;
-
-				} while (true);
+				}
 
 				return $rs;
 			},
