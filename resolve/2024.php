@@ -1,7 +1,34 @@
 <?php
 
 return [
-    // day => resolver
+    '8_1' => [
+        'parser' => [
+            'parser' => "InputHelper::getNumbers",
+        ],
+        'resolver' => function ($input) {
+            $rs = 0;
+            
+            foreach ($$input as $idx => $line) {
+                # code...
+            }
+
+            return $rs;
+        },
+    ],
+    '8_2' => [
+        'parser' => [
+            'parser' => "InputHelper::getNumbers",
+        ],
+        'resolver' => function ($input) {
+            $rs = 0;
+            
+            foreach ($$input as $idx => $line) {
+                # code...
+            }
+
+            return $rs;
+        },
+    ],
     '1_1' => [
         'parser' => [
             'parser' => "InputHelper::getNumbers",

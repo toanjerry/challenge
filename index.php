@@ -25,7 +25,7 @@
 			$this->level = $level;
 			$this->year = $year;
 
-			echo "Day: $this->day - $this->level\n";
+			echo "Day: $this->day/$this->year - Part: $this->level\n";
 		}
 
 		public function getInputFromServer ($force = false) {
@@ -140,8 +140,8 @@
 	}
 
 	$day = intval($_SERVER['argv'][1] ?? null);
-	if (!is_numeric($day)) {
-		echo "\nInvalid day";
+	if (!is_numeric($day) || $day < 1) {
+		echo "\nInvalid day\n";
 		exit();
 	}
 
@@ -151,7 +151,7 @@
 	}
 
 	if (!is_numeric($level) || $level > 2) {
-		echo "\nInvalid level";
+		echo "\nInvalid level\n";
 		exit();
 	}
 
@@ -164,12 +164,12 @@
 	$resolvers = require_once("resolve/$year.php");
 	$parser = $resolvers["{$day}_{$level}"]['parser'] ?? null;
 	if (!$parser) {
-		echo "\nInvalid parser";
+		echo "\nInvalid parser\n";
 		exit();
 	}
 	$resolver = $resolvers["{$day}_{$level}"]['resolver'] ?? null;
 	if (!$resolver) {
-		echo "\nInvalid resolver";
+		echo "\nInvalid resolver\n";
 		exit();
 	}
 
@@ -177,7 +177,7 @@
 	$config = parse_ini_file('.env');
 	$s_key = $config['SESSION_KEY'] ?? null;
 	if (!$s_key) {
-		echo "\nInvalid session key";
+		echo "\nInvalid session key\n";
 		exit();
 	}
 
