@@ -1,6 +1,33 @@
 <?php
 
+// '_1' => [
+//     'parser' => [
+//         'parser' => [
+//             'sep' => '',
+//         ],
+//     ],
+//     'resolver' => function ($input) {
+//         $rs = 0;
+
+//         return $rs;
+
+//     }
+// ],
+
 return [
+    '9_1' => [
+        'parser' => [
+            'parser' => [
+                'sep' => '',
+            ],
+        ],
+        'resolver' => function ($input) {
+            $rs = 0;
+
+            return $rs;
+
+        }
+    ],
     '8_1' => [
         'parser' => [
             'parser' => [
