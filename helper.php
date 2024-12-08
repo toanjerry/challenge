@@ -124,9 +124,9 @@
         return $po[0] >= 0 && $po[1] >= 0 && $po[0] < count($map[0] ?? []) && $po[1] < count($map);
     }
 
-    function updatePo ($po, &$map, $val) {
+    function updatePo ($po, &$map, $val, $step = null) {
         if (is_callable($val) && $val !== '_') {
-            $val = $val(valPo($po, $map), $po, $map);
+            $val = $val(valPo($po, $map), $po, $map, $step);
             if($val !== null) {
                 return $map[$po[1]][$po[0]] = $val;
             }
@@ -146,15 +146,25 @@
         }
 
         if ($val !== null && inMap($new_po, $map)) {
-            updatePo($new_po, $map, $val);
+            updatePo($new_po, $map, $val, $step);
         }
 
         return $new_po;
     }
 
-    function back (&$po, $step) {
-        $po[0] -= $step[0];
-        $po[1] -= $step[1];
+    function back (&$po, $step, $real = false, &$map = [], $val = null) {
+        $new_po = [$po[0] - $step[0], $po[1] - $step[1]];
+
+        if ($real) {
+            $po[0] = $new_po[0];
+            $po[1] = $new_po[1];
+        }
+
+        if ($val !== null && inMap($new_po, $map)) {
+            updatePo($new_po, $map, $val, $step);
+        }
+
+        return $new_po;
     }
 
     function run (&$po, $step, &$map, $real = false, $stop = null, $val = null) {

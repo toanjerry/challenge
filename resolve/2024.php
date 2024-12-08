@@ -543,7 +543,7 @@ return [
                 if (!inMap($po, $input)) {
                     break;
                 }
-                back($po, $step);
+                back($po, $step, true);
 
                 turn($step);
             } while (true);
@@ -564,7 +564,7 @@ return [
             updatePo($po, $input, '-');
             $step = [0, -1];
 
-            $check_loop = function ($po, $step) use (&$input) {
+            $check_loop = function ($po, $step, $map) {
                 $througth = [];
 
                 do {
@@ -575,39 +575,41 @@ return [
                     $througth[$key] = 1;
 
                     turn($step);
-                    run($po, $step, $input, true, function ($val) {
+                    run($po, $step, $map, true, function ($val) {
                         return $val === '#';
                     });
-                    if (!inMap($po, $input)) {
+                    if (!inMap($po, $map)) {
                         return false;
                     }
-                    back($po, $step);
+                    back($po, $step, true);
                 } while (true);
             };
 
             do {
-                $face = face($po, $step, $input);
-                if ($face === null) {
-                    break;
-                }
-
-                if ($face === '#') {
-                    turn($step);
-                } else if ($face === '-') {
-                    step($po, $step, true, $input, '-');
-                } else if ($face === '.') {
-                    $next = step($po, $step);
-
-                    if (!isset($rs[poKey($next)])) {
-                        updatePo($next, $input, '#');
-                        if ($check_loop($po, $step)) {
-                            $rs[poKey($next)] = 1;
+                run($po, $step, $input, true, function ($val) {
+                    return $val === '#';
+                }, function ($val, $po, $map, $step) use (&$rs, &$check_loop) {
+                    if ($val === '.') {
+                        $key = poKey($po)."/".implode("/", $step);
+                        if (!isset($rs[$key])) {
+                            updatePo($po, $map, '#');
+                            if ($check_loop(back($po, $step), $step, $map)) {
+                                $rs[$key] = 1;
+                            }
                         }
+
+                        return '-';
                     }
 
-                    step($po, $step, true, $input, '-');
+                    return null;
+                });
+
+                if (!inMap($po, $input)) {
+                    break;
                 }
-                
+                back($po, $step, true);
+
+                turn($step);
             } while (true);
 
             return count($rs);
