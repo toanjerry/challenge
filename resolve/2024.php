@@ -3,30 +3,81 @@
 return [
     '8_1' => [
         'parser' => [
-            'parser' => "InputHelper::getNumbers",
+            'parser' => [
+                'sep' => '',
+            ],
         ],
         'resolver' => function ($input) {
-            $rs = 0;
+            $rs = [];
             
-            foreach ($$input as $idx => $line) {
-                # code...
+            $hash = groupMap($input);
+
+            foreach ($hash as $val => $pos) {
+                if ($val === '.') {
+                    continue;
+                }
+                for ($i = 0; $i < count($pos) - 1; $i++) {
+                    $p1 = $pos[$i];
+                    for ($j = $i+1; $j < count($pos); $j++) {
+                        $p2 = $pos[$j];
+
+                        $op = stepOpposite($p1, $p2);
+                        if (inMap($op, $input)) {
+                            if (!isset($rs[poKey($op)])) {
+                                $rs[poKey($op)] = 1;
+                            }
+                        }
+
+                        $op = stepOpposite($p2, $p1);
+                        if (inMap($op, $input)) {
+                            if (!isset($rs[poKey($op)])) {
+                                $rs[poKey($op)] = 1;
+                            }
+                        }
+                    }
+                }
             }
 
-            return $rs;
+            return count($rs);
         },
     ],
     '8_2' => [
         'parser' => [
-            'parser' => "InputHelper::getNumbers",
+            'parser' => [
+                'sep' => '',
+            ],
         ],
         'resolver' => function ($input) {
-            $rs = 0;
+            $rs = [];
             
-            foreach ($$input as $idx => $line) {
-                # code...
+            $hash = groupMap($input);
+
+            foreach ($hash as $val => $pos) {
+                if ($val === '.') {
+                    continue;
+                }
+                for ($i = 0; $i < count($pos) - 1; $i++) {
+                    $p1 = $pos[$i];
+                    for ($j = $i+1; $j < count($pos); $j++) {
+                        $p2 = $pos[$j];
+                        $step = [$p1[0] - $p2[0], $p1[1] - $p2[1]];
+
+                        $po_anti = run($p1, $step, $input);
+
+                        $step = [-$step[0], -$step[1]];
+                        do {
+                            if (!inMap(step($po_anti, $step, true), $input)) {
+                                break;
+                            }
+                            if (!isset($rs[poKey($po_anti)])) {
+                                $rs[poKey($po_anti)] = 1;
+                            }
+                        } while (true);
+                    }
+                }
             }
 
-            return $rs;
+            return count($rs);
         },
     ],
     '1_1' => [

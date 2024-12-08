@@ -160,6 +160,21 @@
 		$year = date('Y');
 	}
 
+	// get session key
+	$config = parse_ini_file('.env');
+	$s_key = $config['SESSION_KEY'] ?? null;
+	if (!$s_key) {
+		echo "\nInvalid session key\n";
+		exit();
+	}
+
+	$challenge = new Adventofcode($s_key, $day, $level, $year);
+
+	$input = $resolvers["{$day}_{$level}"]['input'] ?? [];
+	if (!$input) {
+		$challenge->getInputFromServer();
+	}
+
 	// get config parser and resolver input
 	$resolvers = require_once("resolve/$year.php");
 	$parser = $resolvers["{$day}_{$level}"]['parser'] ?? null;
@@ -173,22 +188,7 @@
 		exit();
 	}
 
-	// get session key
-	$config = parse_ini_file('.env');
-	$s_key = $config['SESSION_KEY'] ?? null;
-	if (!$s_key) {
-		echo "\nInvalid session key\n";
-		exit();
-	}
-
-	$challenge = new Adventofcode($s_key, $day, $level, $year);
-
-	$input = $resolvers["{$day}_{$level}"]['input'] ?? [];
-	if ($input) {
-		$challenge->setInput($input, $parser);
-	} else {
-		$challenge->getInputFromServer()->setInput(null, $parser);
-	}
+	$challenge->setInput($input, $parser);
 
 	$challenge->resolve($resolver);
 
