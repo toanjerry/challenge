@@ -522,57 +522,31 @@ return [
             ]
         ],
         'resolver' => function ($input) {
+            $po = poOfVal('^', $input);
 
-            $step = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+            updatePo($po, $input, '-');
+            $rs = 1;
 
-            $turn = function (&$x, &$y, $step, &$count_po, &$out) use (&$input) {
-                do {
-                    $x += $step[0];
-                    $y += $step[1];
-                    if (!isset($input[$y][$x])) {
-                        $out = true;
-                        break;
+            $step = [0, -1];
+            do {
+                run($po, $step, $input, true, function ($val) {
+                    return $val === '#';
+                }, function ($val) use (&$rs) {
+                    if ($val === '.') {
+                        $rs++;
+                        return '-';
                     }
-                    if ($input[$y][$x] === '.') {
-                        $input[$y][$x] = '_';
-                        $count_po++;
-                    } else if ($input[$y][$x] === '_') {
-                        continue;
-                    } else {
-                        $x -= $step[0];
-                        $y -= $step[1];
-                        break;
-                    }
-                } while (true);
 
-                return $count_po;
-            };
+                    return null;
+                });
 
-            $p_x = null;
-            $p_y = null;
-            foreach ($input as $y => $line) {
-                foreach ($line as $x => $c) {
-                    if ($c === '^') {
-                        $p_x = $x;
-                        break;
-                    }
-                }
-
-                if ($p_x) {
-                    $p_y = $y;
+                if (!inMap($po, $input)) {
                     break;
                 }
-            }
+                back($po, $step);
 
-            $rs = 1;
-            $input[$y][$x] = '_';
-
-            $turn_count = 0;
-            $out = false;
-            do {
-                $turn($p_x, $p_y, $step[$turn_count%4], $rs, $out);
-                $turn_count++;
-            } while (!$out);
+                turn($step);
+            } while (true);
 
             return $rs;
         },
@@ -584,103 +558,56 @@ return [
             ]
         ],
         'resolver' => function ($input) {
-
-            $steps = [[0, -1], [1, 0], [0, 1], [-1, 0]];
-
-            $walk = function (&$x, &$y, $step, $update = true) use (&$input) {
-                $next = $input[$y+$step[1]][$x+$step[0]] ?? '';
-
-                if (!$next) {
-                    return '';
-                }
-                if ($next === '#') {
-                    return '#';
-                }
-
-                if ($update) {
-                    $input[$y][$x] = '-';
-                }
-
-                $x += $step[0];
-                $y += $step[1];
-
-                return $next;
-            };
-
-            $run = function (&$x, &$y, $step) use (&$walk) {
-                do {
-                    $next = $walk($x, $y, $step, false);
-                    if (!$next || $next === '#') {
-                        return $next;
-                    }
-                } while (true);
-            };
-
-            $check_loop = function ($x, $y, $count_turn) use ($steps, &$run) {
-                $througth = [];
-
-                $first_key = "{$x}/{$y}/".implode(" ", $steps[$count_turn%4]);
-                $througth[$first_key] = 1;
-
-                do {
-                    $step = $steps[++$count_turn%4];
-
-                    $last = $run($x, $y, $step);
-                    if (!$last) {
-                        return false;
-                    }
-
-                    $key = "{$x}/{$y}/".implode(" ", $step);
-                    if (isset($througth[$key])) {
-                        // if ($key === $first_key) {
-                        // 	return true;
-                        // }
-                        // return false;
-                        return true;
-                    }
-
-                    $througth[$key] = 1;
-                } while (true);
-            };
-
-            $o_x = null;
-            $o_y = null;
-            foreach ($input as $y => $line) {
-                foreach ($line as $x => $c) {
-                    if ($c === '^') {
-                        $o_x = $x;
-                        break;
-                    }
-                }
-
-                if ($o_x) {
-                    $o_y = $y;
-                    break;
-                }
-            }
-
             $rs = [];
 
-            // $input[$y][$x] = '-';
+            $po = poOfVal('^', $input);
+            updatePo($po, $input, '-');
+            $step = [0, -1];
 
-            $turn_count = 0;
+            $check_loop = function ($po, $step) use (&$input) {
+                $througth = [];
+
+                do {
+                    $key = poKey($po).'/'.implode("/", $step);
+                    if (isset($througth[$key])) {
+                        return true;
+                    }
+                    $througth[$key] = 1;
+
+                    turn($step);
+                    run($po, $step, $input, true, function ($val) {
+                        return $val === '#';
+                    });
+                    if (!inMap($po, $input)) {
+                        return false;
+                    }
+                    back($po, $step);
+                } while (true);
+            };
+
             do {
-                $step = $steps[$turn_count%4];
-                $next = $walk($x, $y, $step);
-                if (!$next) {
+                $face = face($po, $step, $input);
+                if ($face === null) {
                     break;
                 }
-                if ($next === '#') {
-                    $turn_count++;
-                } else if ($next === '.') {
-                    if (!isset($rs["{$x}/{$y}"]) && ($x !== $o_x || $y !== $o_y)) {
-                        $input[$y][$x] = "#";
-                        if ($check_loop($x - $step[0], $y - $step[1], $turn_count)) {
-                            $rs["{$x}/{$y}"] = 1;
+
+                if ($face === '#') {
+                    turn($step);
+                } else if ($face === '-') {
+                    step($po, $step, true, $input, '-');
+                } else if ($face === '.') {
+                    $next = step($po, $step);
+
+                    if (!isset($rs[poKey($next)])) {
+                        updatePo($next, $input, '#');
+                        if ($check_loop($po, $step)) {
+                            $rs[poKey($next)] = 1;
                         }
-                        $input[$y][$x] = ".";
                     }
+
+                    step($po, $step, true, $input, '-');
                 }
+                
             } while (true);
 
             return count($rs);

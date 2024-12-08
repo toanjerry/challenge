@@ -124,21 +124,29 @@
         return $po[0] >= 0 && $po[1] >= 0 && $po[0] < count($map[0] ?? []) && $po[1] < count($map);
     }
 
-    function updatePo ($po, &$map, $updater = null) {
-        $po_val = posVal($po, $map);
-        $map[$po[1]][$po[0]] = $updater ? $updater($po_val, $po) : null;
+    function updatePo ($po, &$map, $val) {
+        if (is_callable($val) && $val !== '_') {
+            $val = $val(valPo($po, $map), $po, $map);
+            if($val !== null) {
+                return $map[$po[1]][$po[0]] = $val;
+            }
+
+            return;
+        }
+        
+        return $map[$po[1]][$po[0]] = $val;
     }
     // 2. Step in map
-    function step (&$po, $step, $update = false, &$map = [], $updater = null) {
+    function step (&$po, $step, $real = false, &$map = [], $val = null) {
         $new_po = [$po[0] + $step[0], $po[1] + $step[1]];
 
-        if ($update) {
+        if ($real) {
             $po[0] = $new_po[0];
             $po[1] = $new_po[1];
         }
 
-        if ($updater && inMap($new_po, $map)) {
-            updatePo($new_po, $map, $updater);
+        if ($val !== null && inMap($new_po, $map)) {
+            updatePo($new_po, $map, $val);
         }
 
         return $new_po;
@@ -149,19 +157,19 @@
         $po[1] -= $step[1];
     }
 
-    function run (&$po, $step, &$map, $update = false, $stop = null, $updater = false) {
+    function run (&$po, $step, &$map, $real = false, $stop = null, $val = null) {
         $next_po = $po;
         do {
-            $next_po = step($next_po, $step, true, $map, $updater);
-            if (!inMap($next_po, $map)) {
+            $next_po = step($next_po, $step, true, $map, $val);
+            if ($stop && $stop(valPo($next_po, $map), $next_po, $map)) {
                 break; 
             }
-            if ($stop && $stop(posVal($next_po, $map), $next_po)) {
+            if (!inMap($next_po, $map)) {
                 break; 
             }
         } while (true);
 
-        if ($update) {
+        if ($real) {
             $po[0] = $next_po[0];
             $po[1] = $next_po[1];
         }
@@ -169,10 +177,10 @@
         return $next_po;
     }
 
-    function stepOpposite (&$po, $pivot, $update = false, &$map = [], $updater = null) {
+    function stepOpposite (&$po, $pivot, $real = false, &$map = [], $val = null) {
         $step = [2*($pivot[0] - $po[0]), 2*($pivot[1] - $po[1])];
 
-        return step($po, $step, $update, $map, $updater);
+        return step($po, $step, $real, $map, $val);
     }
 
     function turn (&$step, $direction = 'r') {
@@ -181,6 +189,7 @@
         if ($direction === 'r') {
             $step[0] = -$step_y;
             $step[1] = $step_x;
+            return;
         }
 
         $step[0] = $step_y;
@@ -188,20 +197,32 @@
     }
 
     // 2. get value of position
-    function posVal ($po, $map) {
+    function valPo ($po, $map) {
         return $map[$po[1]][$po[0]] ?? null;
     }
 
-    function posVals ($pos, $map) {
+    function valPos ($pos, $map) {
         $rs = [];
         foreach ($pos as $po) {
-            $rs[] = posVal($map, $po);
+            $rs[] = valPo($map, $po);
         }
 
         return $rs;
     }
 
     function face ($po, $step, $map) {
-        return posVal(step($po, $step), $map);
+        return valPo(step($po, $step), $map);
+    }
+
+    function poOfVal ($val, $map) {
+        foreach ($map as $y => $line) {
+            foreach ($line as $x => $c) {
+                if ($c === $val) {
+                    return [$x, $y];
+                }
+            }
+        }
+
+        return [];
     }
 ?>
