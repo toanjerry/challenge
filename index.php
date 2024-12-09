@@ -111,7 +111,15 @@
 				exit();
 			}
 
+			$start_time = microtime(true);
+			echo "\nStart time: ".date('H:i:s', $start_time);
+
 			$this->result = $cb($this->input);
+
+			$end_time = microtime(true);
+			echo "\nEnd time: ".date('H:i:s', $end_time);
+			echo "\nTotal: ".($end_time - $start_time)." s";
+			echo "\n--------------------------";
 
 			echo "\nResult: ";
 			echo json_encode($this->result);
