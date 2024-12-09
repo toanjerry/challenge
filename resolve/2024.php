@@ -17,9 +17,7 @@
 return [
     '9_1' => [
         'parser' => [
-            'parser' => [
-                'sep' => '',
-            ],
+			'sep' => '',
         ],
         'resolver' => function ($input) {
             $rs = 0;

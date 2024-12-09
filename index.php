@@ -98,7 +98,7 @@
 				return $str;
 			}
 
-			if (empty($parser['sep'])) {
+			if (!isset($parser['sep'])) {
 				$parser['sep'] = END_LINE;
 			}
 
