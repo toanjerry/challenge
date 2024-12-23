@@ -178,11 +178,6 @@
 
 	$challenge = new Adventofcode($s_key, $day, $level, $year);
 
-	$input = $resolvers["{$day}_{$level}"]['input'] ?? [];
-	if (!$input) {
-		$challenge->getInputFromServer();
-	}
-
 	// get config parser and resolver input
 	$resolvers = require_once("resolve/$year.php");
 	$parser = $resolvers["{$day}_{$level}"]['parser'] ?? null;
@@ -194,6 +189,11 @@
 	if (!$resolver) {
 		echo "\nInvalid resolver\n";
 		exit();
+	}
+
+	$input = $resolvers["{$day}_{$level}"]['input'] ?? [];
+	if (!$input) {
+		$challenge->getInputFromServer();
 	}
 
 	$challenge->setInput($input, $parser);

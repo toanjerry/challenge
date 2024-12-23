@@ -62,6 +62,12 @@
 
     // Map helper function
     // 1. process map
+	const STEPS = [
+		[1, 0],
+		[0, 1],
+		[-1, 0],
+		[0, -1],
+	];
     function hashMap ($map, $key_builder = null, $val_builder = null) {
         if (!$key_builder) {
             $key_builder = function ($val, $po) {

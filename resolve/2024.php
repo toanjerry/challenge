@@ -15,6 +15,241 @@
 // ],
 
 return [
+	'11_2' => [
+		'parser' => [
+			'value' => function ($val) {
+				return $val[0];
+			},
+			'parser' => "InputHelper::getNumbers",
+		],
+		'resolver' => function ($input) {
+			$rs = 0;
+
+			$blink = function ($stones) {
+				$new_stones = [];
+				foreach ($stones as $val) {
+					$val = "$val";
+					$len = strlen($val);
+					if ($val == 0) {
+						$new_stones[] = 1;
+					} else if ($len%2 === 0) {
+						$new_stones[] = floatval(substr($val, 0, $len/2));
+						$new_stones[] = floatval(substr($val, $len/2, $len));
+					} else {
+						$new_stones[] = $val*2024;
+					}
+				}
+
+				return $new_stones;
+			};
+
+			$stones = $input;
+			foreach (range(1, 75) as $num) {
+				$stones = $blink($stones);
+			}
+
+			return count($stones);
+		}
+	],
+	'11_1' => [
+		'parser' => [
+			'value' => function ($val) {
+				return $val[0];
+			},
+			'parser' => "InputHelper::getNumbers",
+		],
+		'resolver' => function ($input) {
+			$rs = 0;
+
+			$blink = function ($stones) {
+				$new_stones = [];
+				foreach ($stones as $val) {
+					$val = "$val";
+					$len = strlen($val);
+					if ($val == 0) {
+						$new_stones[] = 1;
+					} else if ($len%2 === 0) {
+						$new_stones[] = floatval(substr($val, 0, $len/2));
+						$new_stones[] = floatval(substr($val, $len/2, $len));
+					} else {
+						$new_stones[] = $val*2024;
+					}
+				}
+
+				return $new_stones;
+			};
+
+			$stones = $input;
+			foreach (range(1, 25) as $num) {
+				$stones = $blink($stones);
+			}
+
+			return count($stones);
+		}
+	],
+	'10_2' => [
+        'parser' => [
+			'parser' => [
+				'sep' => '',
+			],
+        ],
+        'resolver' => function ($input) {
+            $rs = 0;
+
+			$score = function ($po, $map, &$checked = []) use (&$score) {
+				if (!inMap($po, $map)) {
+					return;
+				}
+
+				foreach (STEPS as $step) {
+					$face_po = step($po, $step);
+					if (valPo($face_po, $map) == 9 && valPo($po, $map) == 8) {
+						if (!isset($checked[poKey($face_po)])) {
+							$checked[poKey($face_po)] = 0;
+						}
+
+						$checked[poKey($face_po)]++;
+						continue;
+					}
+
+					if (valPo($face_po, $map) == valPo($po, $map) + 1) {
+						$score($face_po, $map, $checked);
+					}
+				}
+			};
+
+			foreach ($input as $y => $line) {
+				foreach ($line as $x => $val) {
+					if ($val != 0) {
+						continue;
+					}
+
+					$checked = [];
+					$score([$x, $y], $input, $checked);
+					$rs += array_sum($checked);
+				}
+			}
+
+            return $rs;
+        }
+    ],
+	'10_1' => [
+        'parser' => [
+			'parser' => [
+				'sep' => '',
+			],
+        ],
+        'resolver' => function ($input) {
+            $rs = 0;
+
+			$score = function ($po, $map, &$checked = []) use (&$score) {
+				if (!inMap($po, $map)) {
+					return;
+				}
+
+				foreach (STEPS as $step) {
+					$face_po = step($po, $step);
+					if (valPo($face_po, $map) == 9 && valPo($po, $map) == 8) {
+						if (!isset($checked[poKey($face_po)])) {
+							$checked[poKey($face_po)] = 1;
+						}
+						continue;
+					}
+
+					if (valPo($face_po, $map) == valPo($po, $map) + 1) {
+						$score($face_po, $map, $checked);
+					}
+				}
+			};
+
+			foreach ($input as $y => $line) {
+				foreach ($line as $x => $val) {
+					if ($val != 0) {
+						continue;
+					}
+
+					$checked = [];
+					$score([$x, $y], $input, $checked);
+					$rs += count($checked);
+				}
+			}
+
+            return $rs;
+        }
+    ],
+	'9_2' => [
+        'parser' => [
+			'sep' => '',
+        ],
+        'resolver' => function ($input) {
+            $rs = 0;
+
+			$hash = [];
+			$empty_slot = [];
+			$file_slot = [];
+			foreach ($input as $idx => $num_slot) {
+				if ($num_slot == 0) {
+					continue;
+				}
+				if ($idx%2 === 0) {
+					$file_slot[count($hash)] = $num_slot;
+					foreach (range(1, $num_slot) as $n) {
+						$hash[] =  $idx/2 ;
+					}
+				} else {
+					$empty_slot[] = [
+						'po' => count($hash),
+						'num' => $num_slot,
+					];
+					foreach (range(1, $num_slot) as $n) {
+						$hash[] =  '.';
+					}
+				}
+			}
+
+			$file_slot = array_reverse($file_slot, true);
+
+			foreach ($file_slot as $f_po => $f_num_slot) {
+				if ($f_num_slot === 0) {
+					continue;
+				}
+				$po_fit = null;
+				foreach ($empty_slot as $idx => &$empty) {
+					if ($empty['num'] === 0) {
+						continue;
+					}
+					if ($f_num_slot <= $empty['num']) {
+						$po_fit = $empty['po'];
+						if ($f_num_slot == $empty['num']) {
+							unset($empty_slot[$idx]);
+						} else {
+							$empty['po'] += $f_num_slot;
+							$empty['num'] -= $f_num_slot;
+						}
+						break;
+					}
+				}
+
+				if (!$po_fit || $po_fit >= $f_po) {
+					continue;
+				}
+
+				foreach (range(0, $f_num_slot - 1) as $n) {
+					swapArray($hash, $po_fit + $n, $f_po + $n);
+				}
+			}
+
+			foreach ($hash as $idx => $v) {
+				if ($v === '.') {
+					continue;
+				}
+
+				$rs += $v*$idx;
+			}
+
+            return $rs;
+        }
+    ],
     '9_1' => [
         'parser' => [
 			'sep' => '',
@@ -22,8 +257,42 @@ return [
         'resolver' => function ($input) {
             $rs = 0;
 
-            return $rs;
+			$hash = [];
+			foreach ($input as $idx => $num_slot) {
+				if ($num_slot == 0) {
+					continue;
+				}
+				foreach (range(1, $num_slot) as $n) {
+					$hash[] = $idx%2 === 0 ? $idx/2 : '.';
+				}
+			}
 
+			$start = 0;
+			$end = count($hash) - 1;
+			while ($start < $end) {
+				while($hash[$start] != '.') {
+					$start++;
+				};
+				while($hash[$end] == '.') {
+					$end--;
+				}
+
+				if ($start >= $end) {
+					break;
+				}
+
+				swapArray($hash, $start, $end);
+			};
+
+			foreach ($hash as $idx => $v) {
+				if ($v === '.') {
+					break;
+				}
+
+				$rs += $v*$idx;
+			}
+
+            return $rs;
         }
     ],
     '8_1' => [
