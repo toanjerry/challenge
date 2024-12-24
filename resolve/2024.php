@@ -15,6 +15,31 @@
 // ],
 
 return [
+	'12_1' => [
+    'parser' => [
+        'parser' => [
+            'sep' => '',
+        ],
+    ],
+    'resolver' => function ($input) {
+        $rs = 0;
+
+		$region = function ($po, &$map) use ($re) {
+
+		};
+
+		foreach ($input as $y => $line) {
+			foreach ($line as $x => $val) {
+				if ($val != '.') {
+					$region([$x, $y], $input);
+				} 
+			}
+		}
+
+        return $rs;
+
+    }
+],
 	'11_2' => [
 		'parser' => [
 			'value' => function ($val) {
@@ -43,7 +68,7 @@ return [
 				return $new_stones;
 			};
 
-			$stones = $input;
+			$stones = [0];
 			foreach (range(1, 75) as $num) {
 				$stones = $blink($stones);
 			}
