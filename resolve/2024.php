@@ -16,31 +16,33 @@
 
 return [
 	'12_1' => [
-    'parser' => [
-        'parser' => [
-            'sep' => '',
-        ],
-    ],
-    'resolver' => function ($input) {
-        $rs = 0;
+		'input' => "",
+		'parser' => [
+			'parser' => [
+				'sep' => '',
+			],
+		],
+		'resolver' => function ($input) {
+			$rs = 0;
 
-		$region = function ($po, &$map) use ($re) {
+			$region = function ($po, &$map) use ($re) {
 
-		};
+			};
 
-		foreach ($input as $y => $line) {
-			foreach ($line as $x => $val) {
-				if ($val != '.') {
-					$region([$x, $y], $input);
-				} 
+			foreach ($input as $y => $line) {
+				foreach ($line as $x => $val) {
+					if ($val != '.') {
+						$region([$x, $y], $input);
+					} 
+				}
 			}
+
+			return $rs;
+
 		}
-
-        return $rs;
-
-    }
-],
+	],
 	'11_2' => [
+		// 'input' => "125 17",
 		'parser' => [
 			'value' => function ($val) {
 				return $val[0];
@@ -50,30 +52,73 @@ return [
 		'resolver' => function ($input) {
 			$rs = 0;
 
-			$blink = function ($stones) {
-				$new_stones = [];
-				foreach ($stones as $val) {
+			$blink_hash = [];
+
+			$hash_blink = function ($val, $num) use (&$blink_hash, &$hash_blink) {
+				if (!isset($blink_hash[$val])) {
+					$blink_hash[$val] = [];
+				}
+
+				if (isset($blink_hash[$val][$num])) {
+					return $blink_hash[$val][$num];
+				}
+				
+				if ($num === 1) {
 					$val = "$val";
 					$len = strlen($val);
 					if ($val == 0) {
-						$new_stones[] = 1;
+						$blink_hash[$val][1] = [1, [1]];
 					} else if ($len%2 === 0) {
-						$new_stones[] = floatval(substr($val, 0, $len/2));
-						$new_stones[] = floatval(substr($val, $len/2, $len));
+						$blink_hash[$val][1] = [2, [floatval(substr($val, 0, $len/2)), floatval(substr($val, $len/2, $len))]];
 					} else {
-						$new_stones[] = $val*2024;
+						$blink_hash[$val][1] = [1, [$val*2024]];
 					}
+					return $blink_hash[$val][1];
 				}
 
-				return $new_stones;
+				$hash_blink($val, $num - 1);
+				$blink_hash[$val][$num] = [0, []];
+				foreach ($blink_hash[$val][$num-1][1] as $v) {
+					$blink_val = $hash_blink($v, 1);
+					$blink_hash[$val][$num][0] += $blink_val[0];
+					$blink_hash[$val][$num][1] = array_merge($blink_hash[$val][$num][1], $blink_val[1]);
+				}
 			};
 
-			$stones = [0];
-			foreach (range(1, 75) as $num) {
-				$stones = $blink($stones);
+			$blink = function ($val, $num_blink) use (&$blink_hash, &$blink, &$hash_blink) {
+				$max_hash = 15;
+				if (!isset($blink_hash[$val])) {
+					$hash_blink($val, $max_hash);
+				} else if (!isset($blink_hash[$val][$max_hash])) {
+					$hash_blink($val, $max_hash);
+				}
+
+				if ($num_blink <= $max_hash) {
+					return $blink_hash[$val][$num_blink][0];
+				}
+
+				$num = 0;
+				foreach ($blink_hash[$val][$max_hash][1] as $v) {
+					$num += $blink($v, $num_blink-$max_hash);
+				}
+
+				return $num;
+			};
+
+			// foreach (range(0, 9999) as $val) {
+			// 	$blink($val, 30);
+			// }
+
+			for ($i = 0; $i < 920022389; $i++) {
+				$rs++;
 			}
 
-			return count($stones);
+			// $stones = $input;
+			// foreach ($stones as $val) {
+			// 	$rs += $blink($val, 45);
+			// }
+
+			return $rs;
 		}
 	],
 	'11_1' => [
